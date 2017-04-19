@@ -1,23 +1,22 @@
-# Alarm-ios-swift
+# Alarm-ios-swift     
 
-Upgraded to ios10 and swift 3!      
-This project aims to create a clone of the apple's official clock alarm application for study purpose and will come with a series of tutorial (not written yet though).    
-Now the clone looks pretty much like the official one and could work properly, have a try!
+Full functional clone of the apple's official clock alarm application for study purpose.     
+Now supports Swift 3.
 
-##Caution
-Dirty code! Just to show the essential aspects of writing a alarm app.  
-Will be rewritten at [here](https://github.com/natsu1211/Weather-Alarm-Ios-RxSwift)
 
-##Demo
-![](https://github.com/natsu1211/Alarm-ios-swift/blob/swift-3.0/gif/1.gif)       
+## Branch     
 
-![](https://github.com/natsu1211/Alarm-ios-swift/blob/swift-3.0/gif/2.gif)
+`master`     
+newest stable version branch.
 
-![](https://github.com/natsu1211/Alarm-ios-swift/blob/swift-3.0/gif/3.gif)
+`swift-3.0.1`      
+current develop branch.
 
-![](https://github.com/natsu1211/Alarm-ios-swift/blob/swift-3.0/gif/4.gif)
+`others`         
+some old feature branches that not maintained.
 
-![](https://github.com/natsu1211/Alarm-ios-swift/blob/swift-3.0/gif/5.gif)
+## Demo     
+<img src="https://github.com/natsu1211/Alarm-ios-swift/blob/swift-3.0.1/gif/alarm-ios-swift.gif" width="45%" height="45%"> 
 
-##License
+## License      
 MIT

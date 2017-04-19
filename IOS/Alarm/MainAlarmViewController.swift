@@ -1,89 +1,46 @@
 //
 //  MainAlarmViewController.swift
-//  WeatherAlarm
+//  Alarm-ios-swift
 //
 //  Created by longyutao on 15-2-28.
 //  Copyright (c) 2015年 LongGames. All rights reserved.
 //
 
 import UIKit
-import MediaPlayer
 
 class MainAlarmViewController: UITableViewController{
-    
+   
     var alarmDelegate: AlarmApplicationDelegate = AppDelegate()
-    var scheduler: AlarmSchedulerDelegate = Scheduler()
-
+    var alarmScheduler: AlarmSchedulerDelegate = Scheduler()
+    var alarmModel: Alarms = Alarms()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
+        alarmScheduler.checkNotification()
         tableView.allowsSelectionDuringEditing = true
-
     }
     
     override func viewWillAppear(_ animated: Bool) {
-        
         super.viewWillAppear(animated)
+        alarmModel = Alarms()
         tableView.reloadData()
         //dynamically append the edit button
-        if Alarms.sharedInstance.count != 0
-        {
+        if alarmModel.count != 0 {
             self.navigationItem.leftBarButtonItem = editButtonItem
-            //self.navigationItem.leftBarButtonItem?.tintColor = UIColor.redColor()
         }
-        else
-        {
+        else {
             self.navigationItem.leftBarButtonItem = nil
-        }
-        //unschedule all the notifications, faster than calling the cancelAllNotifications func
-        UIApplication.shared.scheduledLocalNotifications = nil
-        
-        let cells = tableView.visibleCells
-        if !cells.isEmpty
-        {
-            assert( cells.count==Alarms.sharedInstance.count, "alarms not been updated correctly")
-            var count = cells.count
-            while count>0
-            {
-                if Alarms.sharedInstance[count-1].enabled
-                {
-                    (cells[count-1].accessoryView as! UISwitch).setOn(true, animated: false)
-                    cells[count-1].backgroundColor = UIColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0)
-                }
-                else
-                {
-                    (cells[count-1].accessoryView as! UISwitch).setOn(false, animated: false)
-                    cells[count-1].backgroundColor = UIColor(red: 0.8, green: 0.8, blue: 0.8, alpha: 1.0)
-                }
-                
-                count -= 1
-            }
         }
     }
     
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
     }
-    
-    /*
-    override func setEditing(editing: Bool, animated: Bool) {
-        super.setEditing(editing,  animated: animated)
-        let cells = tableView.visibleCells() as? [UITableViewCell]
-        if cells != nil{
-
-            for cell in cells!
-            {
-                cell.userInteractionEnabled = editing ? true : false
-            }
-        }
-    }
-    */
-
     
     // MARK: - Table view data source
     
     override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        return 60
+        return 90
     }
 
     override func numberOfSections(in tableView: UITableView) -> Int {
@@ -93,122 +50,97 @@ class MainAlarmViewController: UITableViewController{
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // Return the number of rows in the section.
-        if Alarms.sharedInstance.count == 0
-        {
+        if alarmModel.count == 0 {
             tableView.separatorStyle = UITableViewCellSeparatorStyle.none
         }
-        else
-        {
+        else {
             tableView.separatorStyle = UITableViewCellSeparatorStyle.singleLine
         }
-        return Alarms.sharedInstance.count
-
-        
+        return alarmModel.count
     }
     
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        
-        
-        if isEditing
-        {
-            Global.indexOfCell = indexPath.row
-            self.tableView.tag = indexPath.row
-            performSegue(withIdentifier: "editSegue", sender: self)
+        if isEditing {
+            performSegue(withIdentifier: Id.editSegueIdentifier, sender: SegueInfo(curCellIndex: indexPath.row, isEditMode: true, label: alarmModel.alarms[indexPath.row].label, mediaLabel: alarmModel.alarms[indexPath.row].mediaLabel, mediaID: alarmModel.alarms[indexPath.row].mediaID, repeatWeekdays: alarmModel.alarms[indexPath.row].repeatWeekdays, enabled: alarmModel.alarms[indexPath.row].enabled, snoozeEnabled: alarmModel.alarms[indexPath.row].snoozeEnabled))
         }
     }
     
-    
-
-    
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        var cell = tableView.dequeueReusableCell(withIdentifier: "AlarmCell", for: indexPath) as? UITableViewCell
-        
-        if cell == nil{
-            cell = UITableViewCell(
-                style: UITableViewCellStyle.subtitle, reuseIdentifier: "AlarmCell")
+        var cell = tableView.dequeueReusableCell(withIdentifier: Id.alarmCellIdentifier)
+        if (cell == nil) {
+            cell = UITableViewCell(style: UITableViewCellStyle.subtitle, reuseIdentifier: Id.alarmCellIdentifier)
         }
-       
-        
-        
+        //cell text
+        cell!.selectionStyle = .none
         cell!.tag = indexPath.row
-        let ala = Alarms.sharedInstance[indexPath.row] as Alarm
-        cell!.textLabel?.text = ala.timeStr
-        cell!.textLabel?.font = UIFont.systemFont(ofSize: 22.0)
-        cell!.detailTextLabel?.text = ala.label
-
-  
-
-        // Configure the cell...
-        
+        let alarm: Alarm = alarmModel.alarms[indexPath.row]
+        let amAttr: [String : Any] = [NSFontAttributeName : UIFont.systemFont(ofSize: 20.0)]
+        let str = NSMutableAttributedString(string: alarm.formattedTime, attributes: amAttr)
+        let timeAttr: [String : Any] = [NSFontAttributeName : UIFont.systemFont(ofSize: 45.0)]
+        str.addAttributes(timeAttr, range: NSMakeRange(0, str.length-2))
+        cell!.textLabel?.attributedText = str
+        cell!.detailTextLabel?.text = alarm.label
+        //append switch button
         let sw = UISwitch(frame: CGRect())
-        //sw.transform = CGAffineTransformMakeScale(0.9, 0.9);
+        sw.transform = CGAffineTransform(scaleX: 0.9, y: 0.9);
         
         //tag is used to indicate which row had been touched
         sw.tag = indexPath.row
-        cell!.backgroundColor = UIColor(red: 0.8, green: 0.8, blue: 0.8, alpha: 1.0)
-        sw.addTarget(self, action: #selector(MainAlarmViewController.switchTapped(_:)), for: UIControlEvents.touchUpInside)
-        if ala.enabled
-        {
+        sw.addTarget(self, action: #selector(MainAlarmViewController.switchTapped(_:)), for: UIControlEvents.valueChanged)
+        if alarm.enabled {
+            cell!.backgroundColor = UIColor.white
+            cell!.textLabel?.alpha = 1.0
+            cell!.detailTextLabel?.alpha = 1.0
             sw.setOn(true, animated: false)
+        } else {
+            cell!.backgroundColor = UIColor.groupTableViewBackground
+            cell!.textLabel?.alpha = 0.5
+            cell!.detailTextLabel?.alpha = 0.5
         }
         cell!.accessoryView = sw
         
-        
         //delete empty seperator line
         tableView.tableFooterView = UIView(frame: CGRect.zero)
-        
         return cell!
     }
-    /*
-    override func tableView(tableView: UITableView, willDisplayCell cell: UITableViewCell, forRowAtIndexPath indexPath: NSIndexPath) {
-        cell.
-    }
-    */
     
-    
-    
-    @IBAction func switchTapped(_ sender: UISwitch)
-    {
-        Global.indexOfCell = sender.tag
-        Alarms.sharedInstance.setEnabled(sender.isOn, AtIndex: sender.tag)
-        Alarms.sharedInstance.PersistAlarm(sender.tag)
-        if sender.isOn
-        {
+    @IBAction func switchTapped(_ sender: UISwitch) {
+        let index = sender.tag
+        alarmModel.alarms[index].enabled = sender.isOn
+        if sender.isOn {
             print("switch on")
-            sender.superview?.backgroundColor = UIColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0)
-            scheduler.setNotificationWithDate(Alarms.sharedInstance[sender.tag].date, onWeekdaysForNotify: Alarms.sharedInstance[sender.tag].repeatWeekdays, snooze: Alarms.sharedInstance[sender.tag].snoozeEnabled, soundName: Alarms.sharedInstance[sender.tag].mediaLabel, index: sender.tag)
+            alarmScheduler.setNotificationWithDate(alarmModel.alarms[index].date, onWeekdaysForNotify: alarmModel.alarms[index].repeatWeekdays, snoozeEnabled: alarmModel.alarms[index].snoozeEnabled, onSnooze: false, soundName: alarmModel.alarms[index].mediaLabel, index: index)
+            tableView.reloadData()
         }
-        else
-        {
+        else {
             print("switch off")
-            sender.superview?.backgroundColor = UIColor(red: 0.8, green: 0.8, blue: 0.8, alpha: 1.0)
-            scheduler.reSchedule()
-            
+            alarmScheduler.reSchedule()
+            tableView.reloadData()
         }
     }
 
-    
     // Override to support editing the table view.
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
-            Alarms.sharedInstance.removeAtIndex(indexPath.row)
-            Alarms.sharedInstance.deleteAlarm(indexPath.row)
-            let cells = tableView.visibleCells 
-            for cell in cells
-            {
+            let index = indexPath.row
+            alarmModel.alarms.remove(at: index)
+            let cells = tableView.visibleCells
+            for cell in cells {
                 let sw = cell.accessoryView as! UISwitch
-                if sw.tag > indexPath.row
-                {
+                //adjust saved index when row deleted
+                if sw.tag > index {
                     sw.tag -= 1
                 }
             }
+            if alarmModel.count == 0 {
+                self.navigationItem.leftBarButtonItem = nil
+            }
+            
             // Delete the row from the data source
             tableView.deleteRows(at: [indexPath], with: .fade)
-            
-        } else if editingStyle == .insert {
-            // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
-        }    
+            alarmScheduler.reSchedule()
+        }   
     }
     
     // In a storyboard-based application, you will often want to do a little preparation before navigation
@@ -217,32 +149,40 @@ class MainAlarmViewController: UITableViewController{
         // Pass the selected object to the new view controller.
         let dist = segue.destination as! UINavigationController
         let addEditController = dist.topViewController as! AlarmAddEditViewController
-        if segue.identifier == "addSegue"
-        {
+        if segue.identifier == Id.addSegueIdentifier {
             addEditController.navigationItem.title = "Add Alarm"
-            Global.isEditMode = false
-            Global.label = "Alarm"
-            Global.mediaLabel = "bell"
-            Global.weekdays.removeAll(keepingCapacity: true)
-            Global.snoozeEnabled = false
+            addEditController.segueInfo = SegueInfo(curCellIndex: alarmModel.count, isEditMode: false, label: "Alarm", mediaLabel: "bell", mediaID: "", repeatWeekdays: [], enabled: false, snoozeEnabled: false)
         }
-        else if segue.identifier == "editSegue"
-        {
+        else if segue.identifier == Id.editSegueIdentifier {
             addEditController.navigationItem.title = "Edit Alarm"
-            Global.isEditMode = true
-            Global.weekdays = Alarms.sharedInstance[Global.indexOfCell].repeatWeekdays
-            Global.label = Alarms.sharedInstance[Global.indexOfCell].label
-            Global.mediaLabel = Alarms.sharedInstance[Global.indexOfCell].mediaLabel
-            Global.snoozeEnabled = Alarms.sharedInstance[Global.indexOfCell].snoozeEnabled
+            addEditController.segueInfo = sender as! SegueInfo
         }
-        
-        
     }
     
-    @IBAction func unwindToMainAlarmView(_ segue: UIStoryboardSegue) {
+    @IBAction func unwindFromAddEditAlarmView(_ segue: UIStoryboardSegue) {
         isEditing = false
-        Global.weekdays.removeAll(keepingCapacity: true)
-        
+    }
+    
+    public func changeSwitchButtonState(index: Int) {
+        //let info = notification.userInfo as! [String: AnyObject]
+        //let index: Int = info["index"] as! Int
+        alarmModel = Alarms()
+        if alarmModel.alarms[index].repeatWeekdays.isEmpty {
+            alarmModel.alarms[index].enabled = false
+        }
+        let cells = tableView.visibleCells
+        for cell in cells {
+            if cell.tag == index {
+                let sw = cell.accessoryView as! UISwitch
+                if alarmModel.alarms[index].repeatWeekdays.isEmpty {
+                    sw.setOn(false, animated: false)
+                    cell.backgroundColor = UIColor.groupTableViewBackground
+                    cell.textLabel?.alpha = 0.5
+                    cell.detailTextLabel?.alpha = 0.5
+                }
+            }
+        }
     }
 
 }
+
